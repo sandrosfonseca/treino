@@ -1,6 +1,6 @@
-# 💪 Plano de Treino Personalizado - Meta 70kg
+# 💪 Plano de Treino Personalizado - Meta 67kg
 
-Um aplicativo web completo para acompanhamento de treinos personalizados, desenvolvido para um homem de 43 anos com o objetivo de reduzir de 73kg para 70kg.
+Um aplicativo web completo para acompanhamento de treinos personalizados, desenvolvido para um homem de 43 anos com o objetivo de reduzir de 70kg para 67kg.
 
 ## 📋 Descrição
 
