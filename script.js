@@ -413,6 +413,423 @@ function initCharts() {
     // Performance Chart
     const perfCtx = document.getElementById('performance-chart').getContext('2d');
     
+    // ==========================================
+    // NOVAS FUNCIONALIDADES IMPLEMENTADAS
+    // ==========================================
+    
+    // 1. GRÁFICOS DE EVOLUÇÃO COM CHART.JS
+    const chartsSection = document.getElementById('charts-section');
+    let weightChartInstance = null;
+    let performanceChartInstance = null;
+    
+    function initCharts() {
+        if (!chartsSection) return;
+        
+        chartsSection.style.display = 'grid';
+        
+        // Gráfico de Peso
+        const weightCtx = document.getElementById('weight-chart');
+        if (weightCtx && !weightChartInstance) {
+            const weightData = getWeightHistory();
+            weightChartInstance = new Chart(weightCtx, {
+                type: 'line',
+                data: {
+                    labels: weightData.labels,
+                    datasets: [{
+                        label: 'Peso (kg)',
+                        data: weightData.values,
+                        borderColor: '#3498db',
+                        backgroundColor: 'rgba(52, 152, 219, 0.1)',
+                        tension: 0.4,
+                        fill: true
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        title: {
+                            display: true,
+                            text: '📈 Evolução do Peso'
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: false,
+                            min: 65,
+                            max: 75
+                        }
+                    }
+                }
+            });
+        }
+        
+        // Gráfico de Performance
+        const perfCtx = document.getElementById('performance-chart');
+        if (perfCtx && !performanceChartInstance) {
+            const perfData = getPerformanceHistory();
+            performanceChartInstance = new Chart(perfCtx, {
+                type: 'bar',
+                data: {
+                    labels: perfData.labels,
+                    datasets: [{
+                        label: 'Exercícios Concluídos',
+                        data: perfData.values,
+                        backgroundColor: 'rgba(46, 204, 113, 0.7)',
+                        borderColor: '#27ae60',
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        title: {
+                            display: true,
+                            text: '💪 Performance por Treino'
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            max: 36
+                        }
+                    }
+                }
+            });
+        }
+    }
+    
+    function getWeightHistory() {
+        const history = JSON.parse(localStorage.getItem('weightHistory') || '[]');
+        const defaultData = [
+            { date: new Date().toISOString(), weight: 73 },
+            { date: new Date(Date.now() - 7*24*60*60*1000).toISOString(), weight: 72 },
+            { date: new Date(Date.now() - 14*24*60*60*1000).toISOString(), weight: 71.5 }
+        ];
+        const data = history.length > 0 ? history : defaultData;
+        
+        return {
+            labels: data.map(d => new Date(d.date).toLocaleDateString('pt-BR', {day: '2-digit', month: '2-digit'})),
+            values: data.map(d => d.weight)
+        };
+    }
+    
+    function getPerformanceHistory() {
+        const history = JSON.parse(localStorage.getItem('workoutHistory') || '[]');
+        const last7 = history.slice(-7);
+        
+        return {
+            labels: last7.map(d => new Date(d.date).toLocaleDateString('pt-BR', {weekday: 'short', day: '2-digit'})),
+            values: last7.map(d => d.completed)
+        };
+    }
+    
+    // Botão para registrar peso
+    const registerWeightBtn = document.createElement('button');
+    registerWeightBtn.className = 'action-btn';
+    registerWeightBtn.id = 'register-weight-btn';
+    registerWeightBtn.innerHTML = '<i class="fas fa-weight"></i> Registrar Peso';
+    registerWeightBtn.addEventListener('click', () => {
+        const currentWeight = prompt('Digite seu peso atual (kg):', '73');
+        if (currentWeight && !isNaN(parseFloat(currentWeight))) {
+            const weightHistory = JSON.parse(localStorage.getItem('weightHistory') || '[]');
+            weightHistory.push({
+                date: new Date().toISOString(),
+                weight: parseFloat(currentWeight)
+            });
+            localStorage.setItem('weightHistory', JSON.stringify(weightHistory));
+            
+            // Atualizar gráfico
+            if (weightChartInstance) {
+                weightChartInstance.destroy();
+                weightChartInstance = null;
+                initCharts();
+            }
+            
+            alert(`✅ Peso registrado: ${currentWeight}kg`);
+        }
+    });
+    
+    const actionButtons = document.querySelector('.action-buttons');
+    if (actionButtons) {
+        actionButtons.appendChild(registerWeightBtn);
+    }
+    
+    // Inicializar gráficos ao carregar
+    setTimeout(initCharts, 1000);
+    
+    // 2. CALCULADORA DE 1RM
+    const calc1RMBtn = document.createElement('button');
+    calc1RMBtn.className = 'action-btn';
+    calc1RMBtn.id = 'calc-1rm-btn';
+    calc1RMBtn.innerHTML = '<i class="fas fa-calculator"></i> Calc 1RM';
+    calc1RMBtn.addEventListener('click', () => {
+        const weight = prompt('Peso levantado (kg):', '18');
+        const reps = prompt('Repetições realizadas:', '10');
+        
+        if (weight && reps && !isNaN(parseFloat(weight)) && !isNaN(parseInt(reps))) {
+            const w = parseFloat(weight);
+            const r = parseInt(reps);
+            
+            // Fórmula de Epley
+            const oneRM = Math.round(w * (1 + r / 30) * 10) / 10;
+            
+            // Sugestões de carga
+            const loads = {
+                'Força Máxima (1-3 reps)': `${Math.round(oneRM * 0.9)}-${oneRM}kg`,
+                'Hipertrofia (6-12 reps)': `${Math.round(oneRM * 0.75)}-${Math.round(oneRM * 0.85)}kg`,
+                'Resistência (15+ reps)': `${Math.round(oneRM * 0.6)}-${Math.round(oneRM * 0.7)}kg`
+            };
+            
+            let message = `🏋️ Seu 1RM estimado: ${oneRM}kg\n\n`;
+            message += '📊 Sugestões de carga:\n';
+            for (const [type, load] of Object.entries(loads)) {
+                message += `\n${type}: ${load}`;
+            }
+            
+            alert(message);
+        }
+    });
+    
+    if (actionButtons) {
+        actionButtons.appendChild(calc1RMBtn);
+    }
+    
+    // 3. TEMPORIZADOR INTELIGENTE COM ALERTA SONORO
+    let restTimerInterval;
+    let restTimeLeft = 90;
+    let isRestRunning = false;
+    let audioContext = null;
+    
+    function playBeep() {
+        try {
+            if (!audioContext) {
+                audioContext = new (window.AudioContext || window.webkitAudioContext)();
+            }
+            const oscillator = audioContext.createOscillator();
+            const gainNode = audioContext.createGain();
+            
+            oscillator.connect(gainNode);
+            gainNode.connect(audioContext.destination);
+            
+            oscillator.frequency.value = 880;
+            oscillator.type = 'sine';
+            
+            gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+            gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.5);
+            
+            oscillator.start(audioContext.currentTime);
+            oscillator.stop(audioContext.currentTime + 0.5);
+        } catch (e) {
+            console.log('Audio not supported');
+        }
+    }
+    
+    function startSmartTimer(seconds = 90) {
+        clearInterval(restTimerInterval);
+        restTimeLeft = seconds;
+        isRestRunning = true;
+        
+        const timerDisplay = document.getElementById('timer-display');
+        const startTimerBtn = document.getElementById('start-timer');
+        
+        if (timerDisplay) timerDisplay.textContent = restTimeLeft;
+        if (startTimerBtn) startTimerBtn.textContent = 'Pausar';
+        
+        restTimerInterval = setInterval(() => {
+            restTimeLeft--;
+            
+            if (timerDisplay) {
+                timerDisplay.textContent = restTimeLeft;
+                
+                // Mudar cor nos últimos 10 segundos
+                if (restTimeLeft <= 10) {
+                    timerDisplay.style.color = '#e74c3c';
+                    timerDisplay.style.animation = 'pulse 0.5s infinite';
+                } else {
+                    timerDisplay.style.color = '';
+                    timerDisplay.style.animation = '';
+                }
+            }
+            
+            // Alerta sonoro nos últimos 3 segundos
+            if (restTimeLeft <= 3 && restTimeLeft > 0) {
+                playBeep();
+            }
+            
+            if (restTimeLeft <= 0) {
+                clearInterval(restTimerInterval);
+                isRestRunning = false;
+                
+                if (timerDisplay) {
+                    timerDisplay.textContent = '0';
+                    timerDisplay.style.color = '#27ae60';
+                }
+                if (startTimerBtn) startTimerBtn.textContent = 'Iniciar';
+                
+                // Tocar 3 beeps
+                playBeep();
+                setTimeout(playBeep, 300);
+                setTimeout(playBeep, 600);
+                
+                if ('Notification' in window && Notification.permission === 'granted') {
+                    new Notification('⏰ Descanso Terminado!', {
+                        body: 'Hora de continuar o treino!',
+                        icon: 'https://cdn-icons-png.flaticon.com/512/2965/2965315.png'
+                    });
+                } else {
+                    alert('⏰ Tempo de descanso terminado!');
+                }
+            }
+        }, 1000);
+    }
+    
+    // Solicitar permissão para notificações
+    if ('Notification' in window && Notification.permission === 'default') {
+        Notification.requestPermission();
+    }
+    
+    // 4. EXPORTAR DADOS EM JSON/CSV
+    const exportJSONBtn = document.createElement('button');
+    exportJSONBtn.className = 'action-btn';
+    exportJSONBtn.id = 'export-json-btn';
+    exportJSONBtn.innerHTML = '<i class="fas fa-file-export"></i> Exportar Dados';
+    exportJSONBtn.addEventListener('click', () => {
+        const exportType = confirm('OK para exportar em JSON\nCancelar para exportar em CSV');
+        
+        if (exportType) {
+            // Exportar JSON
+            const data = {
+                workoutHistory: JSON.parse(localStorage.getItem('workoutHistory') || '[]'),
+                weightHistory: JSON.parse(localStorage.getItem('weightHistory') || '[]'),
+                darkMode: localStorage.getItem('darkMode'),
+                exercises: {}
+            };
+            
+            document.querySelectorAll('.exercise-checkbox').forEach(cb => {
+                const exerciseId = cb.closest('.exercise').getAttribute('data-id');
+                const exerciseName = cb.closest('.exercise').querySelector('.exercise-name').textContent;
+                data.exercises[exerciseId] = {
+                    name: exerciseName,
+                    completed: cb.checked
+                };
+            });
+            
+            const blob = new Blob([JSON.stringify(data, null, 2)], {type: 'application/json'});
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `treino-backup-${new Date().toISOString().split('T')[0]}.json`;
+            a.click();
+            URL.revokeObjectURL(url);
+        } else {
+            // Exportar CSV
+            const history = JSON.parse(localStorage.getItem('workoutHistory') || '[]');
+            let csv = 'Data,Exercícios Concluídos,Total,Percentual\n';
+            
+            history.forEach(h => {
+                const date = new Date(h.date).toLocaleDateString('pt-BR');
+                csv += `${date},${h.completed},${h.total},${h.percentage}%\n`;
+            });
+            
+            const blob = new Blob([csv], {type: 'text/csv'});
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `treino-historico-${new Date().toISOString().split('T')[0]}.csv`;
+            a.click();
+            URL.revokeObjectURL(url);
+        }
+        
+        alert('✅ Dados exportados com sucesso!');
+    });
+    
+    if (actionButtons) {
+        actionButtons.appendChild(exportJSONBtn);
+    }
+    
+    // 5. SERVICE WORKER PARA PWA
+    if ('serviceWorker' in navigator) {
+        // Registrar service worker (inline para simplicidade)
+        const swCode = `
+            const CACHE_NAME = 'treino-v1';
+            const urlsToCache = ['/', '/index.html', '/styles.css', '/script.js'];
+            
+            self.addEventListener('install', event => {
+                event.waitUntil(
+                    caches.open(CACHE_NAME)
+                        .then(cache => cache.addAll(urlsToCache))
+                );
+            });
+            
+            self.addEventListener('fetch', event => {
+                event.respondWith(
+                    caches.match(event.request)
+                        .then(response => response || fetch(event.request))
+                );
+            });
+            
+            self.addEventListener('activate', event => {
+                event.waitUntil(
+                    caches.keys().then(cacheNames => {
+                        return Promise.all(
+                            cacheNames.filter(name => name !== CACHE_NAME)
+                                        .map(name => caches.delete(name))
+                        );
+                    })
+                );
+            });
+        `;
+        
+        // Criar blob do service worker
+        const blob = new Blob([swCode], {type: 'application/javascript'});
+        const swUrl = URL.createObjectURL(blob);
+        
+        navigator.serviceWorker.register(swUrl)
+            .then(registration => {
+                console.log('Service Worker registrado:', registration.scope);
+            })
+            .catch(error => {
+                console.log('Erro ao registrar Service Worker:', error);
+            });
+    }
+    
+    // Manifesto PWA (inline)
+    const manifest = {
+        name: 'Plano de Treino Personalizado',
+        short_name: 'Treino',
+        description: 'App de treino personalizado para homem 43 anos',
+        start_url: '/',
+        display: 'standalone',
+        background_color: '#ffffff',
+        theme_color: '#3498db',
+        icons: [
+            {
+                src: 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><text y=".9em" font-size="90">💪</text></svg>',
+                sizes: '192x192',
+                type: 'image/svg+xml'
+            }
+        ]
+    };
+    
+    const manifestLink = document.createElement('link');
+    manifestLink.rel = 'manifest';
+    manifestLink.href = 'data:application/manifest+json,' + encodeURIComponent(JSON.stringify(manifest));
+    document.head.appendChild(manifestLink);
+    
+    console.log('✅ Todas as novas funcionalidades foram carregadas!');
+    
+    console.log('💪 App de Treino carregado com sucesso!');
+});
+
+// Dark Mode Toggle - fora do DOMContentLoaded para acesso global
+const themeToggle = document.getElementById('theme-toggle');
+const body = document.body;
+
+// Carregar tema salvo
+if (localStorage.getItem('darkMode') === 'enabled') {
+    body.classList.add('dark-mode');
+    if (themeToggle) {
+        themeToggle.innerHTML = '<i class="fas fa-sun"></i>';
     if (performanceChart) {
         performanceChart.destroy();
     }
