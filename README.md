@@ -81,10 +81,10 @@ Este projeto oferece um plano de treino estruturado para 4 dias por semana, util
 
 ## 📊 Progresso Esperado
 
-- **Peso inicial**: 73kg
-- **Peso meta**: 70kg
+- **Peso inicial**: 70kg
+- **Peso meta**: 67kg
 - **Duração estimada**: 8-12 semanas
-- **Frequência**: 4x por semana
+- **Frequência**: 3x por semana
 
 ## 💡 Dicas de Uso
 
@@ -104,4 +104,4 @@ Projeto pessoal para acompanhamento de treinos.
 
 ---
 
-**Desenvolvido com 💪 para alcançar a meta de 70kg!**
+**Desenvolvido com 💪 para alcançar a meta de 67kg!**
